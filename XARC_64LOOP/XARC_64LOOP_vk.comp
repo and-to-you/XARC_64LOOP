@@ -1,0 +1,28 @@
+#version 450
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) buffer InChunks {
+    uint64_t in_chunks[];
+};
+
+layout(std430, binding = 1) buffer OutChunks {
+    uint64_t out_chunks[];
+};
+
+layout(push_constant) uniform Params {
+    uint64_t prev_init;
+} params;
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+
+    uint64_t prev = params.prev_init;
+    uint64_t c = in_chunks[idx];
+
+    uint64_t x = c ^ prev;
+    x = (x << 1) | (x >> 63);
+
+    out_chunks[idx] = x;
+}
