@@ -1,87 +1,54 @@
 # XARC_64LOOP
-XARC_64LOOP is a 64‑bit loop cipher core used internally by the XARC archive format.
 
-It processes data in 64‑bit chunks using a lightweight reversible transform based on:
+**XARC_64LOOP** is a lightweight 64‑bit reversible loop transform used inside the XARC archive format.  
+It is designed for internal data consistency rather than cryptographic strength.
 
-XOR chaining
+The transform operates on 64‑bit blocks and applies a simple reversible sequence:
 
-1‑bit rotation
+- XOR chaining  
+- 1‑bit rotation  
+- Zero‑padding for incomplete blocks  
+- Fully reversible forward/backward processing  
 
-Zero‑padding for incomplete blocks
+This module provides two public functions:
 
-The design is intended for internal consistency, not cryptographic strength.
+- `pack_data_xarc64(data: bytes)` — encode (forward transform)  
+- `unpack_data_xarc64(raw: bytes)` — decode (reverse transform)
 
-Features
-Fixed 64‑bit block processing
+---
 
-Stream‑like chaining structure
+## Algorithm Summary
 
-XOR + rotate transformation
+### 1. Chunking
+Input bytes are split into **8‑byte (64‑bit)** blocks.  
+If the final block is shorter, it is padded with `0x00`.
 
-Zero (0x00) padding
+### 2. Forward Transform (pack)
+For each 64‑bit block:
 
-Fully reversible
+1. XOR with the previous output  
+   - Initial value: `0xA5A5A5A5A5A5A5A5`
+2. Rotate left by 1 bit  
+3. Output becomes the next “previous” value
 
-No external key (XARC‑internal only)
+### 3. Reverse Transform (unpack)
+Reverse of the above:
 
-Algorithm Overview
-1. Chunking
-Input bytes are split into 8‑byte (64‑bit) chunks.
-If the final block is shorter, it is padded with 0x00.
+1. Rotate right by 1 bit  
+2. XOR with the previous encrypted block  
+3. Restore the original 64‑bit chunk  
+4. Remove zero‑padding at the end
 
-2. Encryption
-For each 64‑bit chunk:
+---
 
-XOR with previous output
+## Public API
 
-Initial value: 0xA5A5A5A5A5A5A5A5
-
-Rotate left by 1 bit
-
-Output becomes the next “prev” value
-
-3. Decryption
-Reverse of encryption:
-
-Rotate right by 1 bit
-
-XOR with previous encrypted block
-
-Restore original 64‑bit chunk
-
-Public Functions
-pack_data_xarc64(data: bytes)
-Encrypts the input byte sequence
+### `pack_data_xarc64(data: bytes) -> dict`
+Encodes the input byte sequence.
 
 Returns:
+```python
 {
-  "encoded": <encrypted bytes>,
-  "pad": <padding size>
+    "encoded": <bytes>,
+    "pad": <int>  # number of padding bytes added
 }
-unpack_data_xarc64(raw: bytes)
-Decrypts the encrypted byte sequence
-
-Removes padding and returns the original data
-
-Directory Structure
-
-XARC_64LOOP/
- ├─ XARC_64LOOP.py   # Core implementation
- ├─ _test.py         # Basic test
- └─ __init__.py
-Minimal Test
-
-python _test.py
-If the output shows OK: True, the implementation is correct.
-
-Usage
-Used by XARC for internal file‑data encryption and decryption
-
-Only pack_data_xarc64 and unpack_data_xarc64 are intended for external use
-
-Notes
-Not designed for security
-
-Intended for reversible internal transformation
-
-Do not use as a general‑purpose cipher
